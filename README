@@ -1,0 +1,75 @@
+"SRTM_to_STL" was my first attempt at writing a Python suite
+to convert NASA SRTM data (3 arc-second spacing) into STL files for 3D printing
+
+Then NASA released the much better SRTMGL1 1 arc-second data set...
+
+The intermediate .csv files used by SRTM_to_STL couldn't easily handle the x9 increase in data,
+so I re-wrote the code to use intermediate numpy .npz files instead
+
+The SRTMGL1 data can be downloaded from:
+http://earthexplorer.usgs.gov/
+(select the data set called
+"NASA LPDAAC Collections \ NASA SRTM (SRTM 3) Collections \ NASA SRTM3 SRTMGL1")
+
+The 1 arc-second data has a horizontal resolution of about 30m on the ground and
+is best suited for printing relatively small areas at maximum resolution.
+You can still join the hgt files together if the area you are interested in crosses
+file boundaries, but the software will then ask you to cut the data leaving
+3601 x 3601 points
+
+If you want to print large areas, you will probably be better off using "SRTM_to_STL".
+You can still use the 1 arc-second data, just use SRTM_resample.py to convert
+the 1 arc-second data files into 3 arc-second.
+
+To create a nice print of the summit of Everest:
+
+Everest straddles N27E086.hgt and N28E086.hgt, so use SRTM_Join.py to join the files together:
+python SRTM_Join.py N27E086.hgt N28E086.hgt
+The code will ask you which row you want to cut from. Enter "1800"
+You need to keep a note that the file now has a latitude offset of 0.5 degrees
+
+SRTM_to_NPZ.py then converts the hgt file into numpy .npz format:
+python SRTM_to_NPZ.py N27E086_join.hgt
+
+The npz file contains: width, height, hgt_max, east, north, hgt
+Where:
+width is the width of the data in eastings (columns)
+height is the height of the data in northings (rows)
+hgt_max is the maximum altitude in the data
+east is the array of eastings
+north is the array of northings
+hgt is the array of altitudes
+
+UK data is converted to OSGB coordinates using WGS84toOSGB36
+Data for the rest of the World is converted to UTM
+
+The npz file can then be trimmed to our area of interest:
+python NPZ_Trim.py N27E086_join.npz 487000 496000 3091700 3100700
+(This trims the npz file to a 9km x 9km area centred on the summit)
+(The trimming takes a long time - there must be a more efficent way of doing it!)
+
+The .npz file is then converted to .stl:
+python NPZ_to_STL.py N27E086_join_trim.npz 87.5 90.0
+Enter 0.0 for the base offset and base thickness to create a true 1:100,000 scale print.
+You can save plastic by entering a base offset of -50.0.
+
+slic3r or MeshLab will display the STL file, but if you want to view it
+using Python and Mayavi you can:
+python 3D_STL.py N27E086_join_trim.stl
+
+The hgt filename refers to the lower left pixel or sample in the data
+Sample spacing is 1 arc-seconds for SRTMGL1 data
+Data is two byte signed integers (big endian)
+First row in the file is the ***northernmost*** one
+
+utm has been gratefully plagiarised from https://pypi.python.org/pypi/utm
+and then modified to allow the UTM zone to be forced. This is essential if
+the hgt data crosses or ends on a UTM zone boundary. See http://www.dmap.co.uk/utmworld.htm
+
+WGS84toOSGB36 is gratefully plagiarised from:
+http://hannahfry.co.uk/2012/02/01/converting-latitude-and-longitude-to-british-national-grid/
+
+If you have enjoyed this code, please make a small donation to Keswick Mountain Rescue Team:
+http://www.keswickmrt.org.uk/support_us.htm
+http://www.keswickmrt.org.uk/
+
