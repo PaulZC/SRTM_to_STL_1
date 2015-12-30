@@ -9,7 +9,6 @@
 ## Data is two byte signed integers (big endian)
 ## First row in the file is the ***northernmost*** one
 
-import utm
 import numpy
 import sys
 from scipy import *
